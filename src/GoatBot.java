@@ -28,7 +28,11 @@ import org.jibble.pircbot.*;
 public class GoatBot extends PircBot {
 	
 	public static final int MAX_MESSAGE_HISTORY = 15; // Sets max size of the message history array
+<<<<<<< HEAD
 	public static final int FLOOD_MESSAGE_FLOOR = 10; // Sets the number of messages from the user in the history to be considered a flood
+=======
+	public static final int FLOOD_MESSAGE_FLOOR = 10; // Sets the number of messages in a row to be considered a flood
+>>>>>>> origin/master
 	public static final int FLOOD_TIME_LIMIT = 8; // Set the amount of time between the FLOOD_MESSAGE_FLOOR number of messages to be declared a flood
 	public static final int WARNINGS_BEFORE_KICK = 1; // Set how many times a user is warned before being kicked
 	public static final int KICKS_BEFORE_BAN = 1; // Set how many times a user is kicked before being banned

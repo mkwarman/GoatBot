@@ -7,11 +7,16 @@
  * Changes
  * 0.2
  * Added banning functionality
+ * 
+ * 0.3
+ * Added ban expiration
  */
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.jibble.pircbot.*;
 
@@ -24,6 +29,7 @@ public class GoatBot extends PircBot {
 	public static final int KICKS_BEFORE_BAN = 1; // Set how many times a user is kicked before being banned
 	public static final int FIRST_BAN_TIME = 150; // Set how many seconds the first ban should last
 	public static final int BAN_MULTIPLIER = 2; // Set the time multiplier for additional bans
+	public static final int BAN_CHECK_INTERVAL = 1; // Set the interval in minutes for unban checks
 	public Date time;
 	
 	static List<Message> messageHistory = new ArrayList<Message>(); // Initialize an array list of messages
@@ -32,7 +38,20 @@ public class GoatBot extends PircBot {
 
 	public GoatBot() {
 		this.setName("GoatBot");
+	
+		Timer timer = new Timer();
+		timer.schedule(new TimerTask()
+		{
+			@Override
+			public void run()
+			{
+				banCheck();
+			}
+		}, 0, 1000 * 60 * BAN_CHECK_INTERVAL);
 	}
+	
+
+	
 	
 	// When someone says something
 	public void onMessage(String channel, String sender, String login, String hostname, String message)
@@ -102,7 +121,7 @@ public class GoatBot extends PircBot {
 	}
 	
 	// In the case of a flood, check if the sender has a history, and react accordingly
-	public void floodProtect(String channel, String sender, String hostname)
+	public void floodProtect(String channel, String sender, String hostmask)
 	{
 		boolean repeatOffender = false;	// Innocent till proven guilty	
 		int index = 0; // Keep track of the user's location in the arraylist
@@ -121,13 +140,13 @@ public class GoatBot extends PircBot {
 		if (repeatOffender)
 		{
 			// If the sender has used up all their kicks
-			if (actions.get(index).getWarnings() >= KICKS_BEFORE_BAN)
+			if (actions.get(index).getKicks() >= KICKS_BEFORE_BAN)
 			{
 				// If this is the sender's first ban
 				if (actions.get(index).getBans() == 0)
 				{
 					// Kickban the user for the default first ban amount of time
-					kickBanTest(channel, sender, hostname, FIRST_BAN_TIME);
+					kickBanTest(channel, sender, hostmask, FIRST_BAN_TIME);
 					actions.get(index).addBan(time, FIRST_BAN_TIME);
 				}
 				
@@ -135,16 +154,17 @@ public class GoatBot extends PircBot {
 				else
 				{
 					// Ban the user again, with a ban time based on the BAN_MULTIPLIER
-					kickBanTest(channel, sender, hostname, actions.get(index).getLastBanLength() * BAN_MULTIPLIER);
+					kickBanTest(channel, sender, hostmask, actions.get(index).getLastBanLength() * BAN_MULTIPLIER);
 					actions.get(index).addBan(time, actions.get(index).getLastBanLength() * BAN_MULTIPLIER);
 				}
 			}
 			
 			// If the sender has used up all their warnings
-			if (actions.get(index).getWarnings() >= WARNINGS_BEFORE_KICK)
+			else if (actions.get(index).getWarnings() >= WARNINGS_BEFORE_KICK)
 			{
 				// Kick them
 				kickTest(channel, sender, "Kicked by the Goat!");
+				actions.get(index).addKick(); // Add that the sender was kicked
 			}
 			
 			else // If the user has NOT used up their warnings
@@ -157,7 +177,7 @@ public class GoatBot extends PircBot {
 		
 		else // If the user is NOT a repeat offender
 		{
-			actions.add(new Action(channel, sender)); // Add the user to the actions arraylist
+			actions.add(new Action(channel, sender, hostmask)); // Add the user to the actions arraylist
 			actions.get(index).addWarning(); // Add that a warning was given to the actions arraylist
 
 			// Issue them a warning
@@ -185,11 +205,38 @@ public class GoatBot extends PircBot {
 	}
 	
 	// Test banning calls
-	public void kickBanTest(String channel, String sender, String hostname, int seconds)
+	public void kickBanTest(String channel, String sender, String hostmask, int seconds)
 	{
 		sendMessage(channel, Colors.BOLD + Colors.RED + "Banning " + sender + " for " + seconds + " seconds.");
 		sendMessage(channel, Colors.BOLD + Colors.RED + "But not really because I'm still being tested.");
 	}
 	
+	// Test unbanning calls
+	public void unBanTest(String channel, String sender, String hostmask)
+	{
+		sendMessage(channel, Colors.BOLD + Colors.BLUE + "Unbannning " + sender + "from channel " + channel + " with hostmask " + hostmask);
+		sendMessage(channel, Colors.BOLD + Colors.BLUE + "But not really because I'm still being tested.");
+	}
+	
+	// Check if there are any users to be unbanned
+	public void banCheck()
+	{
+		System.out.print("Checking for expired bans");
+		int index; // help cycle through the arraylist
+		for (index = 0; index < actions.size(); index++) // cycle through the entire arraylist
+		{
+			// If an entry exists that is banned but the ban has expired...
+			if (actions.get(index).getBannedStatus() && actions.get(index).getBanExpired())
+			{
+				// Unban the user
+				//unBan(actions.get(index).getChannel(), actions.get(index).getHostmask());
+				unBanTest(actions.get(index).getChannel(), actions.get(index).getNick(), actions.get(index).getHostmask());
+				actions.get(index).removeBan(); // Remove the banned status in the Action object
+				
+				// Provide console feedback
+				System.out.print("Unbanned user " + actions.get(index).getNick() + " from channel " + actions.get(index).getChannel());
+			}
+		}
+	}
 	
 }

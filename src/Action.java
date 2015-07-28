@@ -8,12 +8,14 @@
  * 0.2
  * Improved addBan - now tracks ban time and length
  * Added ban status, changed currently banned to ban expired
+ * Added hostmask for bans
  */
 
 import java.util.Date;
 
 public class Action {
 	 private String nick; // Store the nick of the user the action is associated with
+	 private String hostmask; // Store the hostmask of the user the action is associated with
 	 private String channel; // Store the channel the action was made in
 	 private int warnings = 0; // Number of warnings given to the user
 	 private int kicks = 0; // Number of times the user was kicked
@@ -22,14 +24,20 @@ public class Action {
 	 private int lastBanLength = 0; // Length of the last ban
 	 private Date lastBanStart; // Date and time that the last ban started
 	 
-	 Action(String inputChannel, String inputNick) {
+	 Action(String inputChannel, String inputNick, String inputHostmask) {
 		 channel = inputChannel;
 		 nick = inputNick;
+		 hostmask = inputHostmask;
 	 }
 	 
 	 String getNick()
 	 {
 		 return nick;
+	 }
+	 
+	 String getHostmask()
+	 {
+		 return hostmask;
 	 }
 	 
 	 String getChannel()
@@ -66,7 +74,13 @@ public class Action {
 	 {
 		 lastBanStart = banStartTime;
 		 lastBanLength = banLength;
+		 banStatus = true;
 		 bans++;
+	 }
+	 
+	 void removeBan()
+	 {
+		 banStatus = false;
 	 }
 	 
 	 boolean getBannedStatus()

@@ -214,7 +214,7 @@ public class GoatBot extends PircBot {
 	// Test unbanning calls
 	public void unBanTest(String channel, String sender, String hostmask)
 	{
-		sendMessage(channel, Colors.BOLD + Colors.BLUE + "Unbannning " + sender + "from channel " + channel + " with hostmask " + hostmask);
+		sendMessage(channel, Colors.BOLD + Colors.BLUE + "Unbannning " + sender + " from channel " + channel + " with hostmask " + hostmask);
 		sendMessage(channel, Colors.BOLD + Colors.BLUE + "But not really because I'm still being tested.");
 	}
 	

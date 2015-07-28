@@ -22,9 +22,9 @@ import org.jibble.pircbot.*;
 
 public class GoatBot extends PircBot {
 	
-	public static final int MAX_MESSAGE_HISTORY = 5; // Sets max size of the message history array
-	public static final int FLOOD_MESSAGE_FLOOR = 5; // Sets the number of messages in a row to be considered a flood
-	public static final int FLOOD_TIME_LIMIT = 2; // Set the amount of time between the FLOOD_MESSAGE_FLOOR number of messages to be declared a flood
+	public static final int MAX_MESSAGE_HISTORY = 15; // Sets max size of the message history array
+	public static final int FLOOD_MESSAGE_FLOOR = 10; // Sets the number of messages in a row to be considered a flood
+	public static final int FLOOD_TIME_LIMIT = 8; // Set the amount of time between the FLOOD_MESSAGE_FLOOR number of messages to be declared a flood
 	public static final int WARNINGS_BEFORE_KICK = 1; // Set how many times a user is warned before being kicked
 	public static final int KICKS_BEFORE_BAN = 1; // Set how many times a user is kicked before being banned
 	public static final int FIRST_BAN_TIME = 150; // Set how many seconds the first ban should last
@@ -193,7 +193,7 @@ public class GoatBot extends PircBot {
 	{
 		// Report when a kick would have taken place
 		sendMessage(channel, Colors.BOLD + Colors.RED + "This would hav resulted in a /kick of user " + sender + ", but didn't as GoatBot is still being tested");
-		sendMessage(channel, Colors.BOLD + Colors.RED + "If this would have been unwarrented, please tell mkwarman.");
+		sendMessage(channel, Colors.BOLD + Colors.RED + "If this would have been unwarranted, please tell mkwarman.");
 	}
 	
 	// Simple function for banning then kicking a user for a set amount of time
@@ -214,7 +214,7 @@ public class GoatBot extends PircBot {
 	// Test unbanning calls
 	public void unBanTest(String channel, String sender, String hostmask)
 	{
-		sendMessage(channel, Colors.BOLD + Colors.BLUE + "Unbannning " + sender + " from channel " + channel + " with hostmask " + hostmask);
+		sendMessage(channel, Colors.BOLD + Colors.BLUE + "Unbanning " + sender + " from channel " + channel + " with hostmask " + hostmask);
 		sendMessage(channel, Colors.BOLD + Colors.BLUE + "But not really because I'm still being tested.");
 	}
 	

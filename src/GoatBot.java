@@ -145,6 +145,8 @@ public class GoatBot extends PircBot {
 			{
 				// Kick them
 				kickTest(channel, sender, "Kicked by the Goat!");
+				actions.get(index).addKick(); // Add that the sender was kicked
+
 			}
 			
 			else // If the user has NOT used up their warnings

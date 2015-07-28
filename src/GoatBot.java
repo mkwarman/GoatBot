@@ -10,6 +10,11 @@
  * 
  * 0.3
  * Added ban expiration
+ * 
+ * 0.4
+ * Added ability to switch between testing and production mode
+ * Improved array clearing after dealing with a penalized sender
+ * Added unknown command reply
  */
 
 import java.util.ArrayList;
@@ -22,32 +27,34 @@ import org.jibble.pircbot.*;
 
 public class GoatBot extends PircBot {
 	
-	public static final int MAX_MESSAGE_HISTORY = 5; // Sets max size of the message history array
-	public static final int FLOOD_MESSAGE_FLOOR = 5; // Sets the number of messages in a row to be considered a flood
-	public static final int FLOOD_TIME_LIMIT = 2; // Set the amount of time between the FLOOD_MESSAGE_FLOOR number of messages to be declared a flood
+	public static final int MAX_MESSAGE_HISTORY = 15; // Sets max size of the message history array
+	public static final int FLOOD_MESSAGE_FLOOR = 10; // Sets the number of messages from the user in the history to be considered a flood
+	public static final int FLOOD_TIME_LIMIT = 8; // Set the amount of time between the FLOOD_MESSAGE_FLOOR number of messages to be declared a flood
 	public static final int WARNINGS_BEFORE_KICK = 1; // Set how many times a user is warned before being kicked
 	public static final int KICKS_BEFORE_BAN = 1; // Set how many times a user is kicked before being banned
 	public static final int FIRST_BAN_TIME = 150; // Set how many seconds the first ban should last
 	public static final int BAN_MULTIPLIER = 2; // Set the time multiplier for additional bans
 	public static final int BAN_CHECK_INTERVAL = 1; // Set the interval in minutes for unban checks
+	public boolean testingMode = true;
 	public Date time;
 	
 	static List<Message> messageHistory = new ArrayList<Message>(); // Initialize an array list of messages
 	static List<Action> actions = new ArrayList<Action>(); // Keep track of actions taken
 	
-
+	// Instantiate the bot
 	public GoatBot() {
 		this.setName("GoatBot");
 	
+		// Start a timer for ban expiration checks
 		Timer timer = new Timer();
 		timer.schedule(new TimerTask()
 		{
 			@Override
 			public void run()
 			{
-				banCheck();
+				banCheck(); // Run the check for expired bans
 			}
-		}, 0, 1000 * 60 * BAN_CHECK_INTERVAL);
+		}, 0, 1000 * 60 * BAN_CHECK_INTERVAL); // Every interval amount
 	}
 	
 
@@ -71,6 +78,40 @@ public class GoatBot extends PircBot {
 		{
 			// Say you're alive. If you don't, you're probably not alive
 			sendMessage(channel, sender + ": GoatBot is alive");
+		}
+		
+		// If an OP of chatbotcontrol wishes to enable testing mode
+		if (message.equalsIgnoreCase("goatbot, enable testing mode") && isOp(sender, "#chatbotcontrol"))
+		{
+			// Enable testing mode
+			testingMode = true;
+			sendMessage(channel, "Ok " + sender + ", enabled testing mode");
+		}
+		
+		// If a nonOP trys to enable testing mode
+		else if (message.equalsIgnoreCase("goatbot, enable testing mode"))
+		{
+			sendMessage(channel, "Nice try, but you don't have the necessary authentication, " + sender);
+		}
+		
+		// If an OP of chatbotcontrol wishes to disable testing mode
+		if (message.equalsIgnoreCase("goatbot, disable testing mode") && isOp(sender, "#chatbotcontrol"))
+		{
+			// Disable testing mode
+			testingMode = false;
+			sendMessage(channel, "Ok " + sender + ", disabled testing mode");
+		} 
+		
+		// If a nonOP trys to enable testing mode
+		else if (message.equalsIgnoreCase("goatbot, disable testing mode"))
+		{
+			sendMessage(channel, "Nice try, but you don't have the necessary authentication, " + sender);
+		}
+		
+		// Reply command unknown when appropriate
+		else if (message.toLowerCase().startsWith("goatbot, ") || message.toLowerCase().startsWith("goatbot: "))
+		{
+			sendMessage(channel, "Sorry " + sender + ", I don't understand that command");
 		}
 		
 		// Record the message's sender, content, the channel it was sent to, and the time it was sent
@@ -146,7 +187,14 @@ public class GoatBot extends PircBot {
 				if (actions.get(index).getBans() == 0)
 				{
 					// Kickban the user for the default first ban amount of time
-					kickBanTest(channel, sender, hostmask, FIRST_BAN_TIME);
+					if (testingMode)
+					{
+						kickBanTest(channel, sender, hostmask, FIRST_BAN_TIME);
+					}
+					else
+					{
+						kickBan(channel, sender, hostmask, FIRST_BAN_TIME);
+					}
 					actions.get(index).addBan(time, FIRST_BAN_TIME);
 				}
 				
@@ -154,7 +202,14 @@ public class GoatBot extends PircBot {
 				else
 				{
 					// Ban the user again, with a ban time based on the BAN_MULTIPLIER
-					kickBanTest(channel, sender, hostmask, actions.get(index).getLastBanLength() * BAN_MULTIPLIER);
+					if (testingMode)
+					{
+						kickBanTest(channel, sender, hostmask, actions.get(index).getLastBanLength() * BAN_MULTIPLIER);
+					}
+					else
+					{
+						kickBan(channel, sender, hostmask, actions.get(index).getLastBanLength() * BAN_MULTIPLIER);
+					}
 					actions.get(index).addBan(time, actions.get(index).getLastBanLength() * BAN_MULTIPLIER);
 				}
 			}
@@ -163,7 +218,14 @@ public class GoatBot extends PircBot {
 			else if (actions.get(index).getWarnings() >= WARNINGS_BEFORE_KICK)
 			{
 				// Kick them
-				kickTest(channel, sender, "Kicked by the Goat!");
+				if (testingMode)
+				{
+					kickTest(channel, sender);
+				}
+				else
+				{
+					kick(channel, sender, "Kicked by the Goat!");
+				}
 				actions.get(index).addKick(); // Add that the sender was kicked
 			}
 			
@@ -185,15 +247,54 @@ public class GoatBot extends PircBot {
 
 		}
 		
-		messageHistory.clear(); // Clear the message history since an action took place
+		// Remove sender's messages from the history
+		for (index = 0; index < actions.size(); index++) // Scan through the arraylist
+		{
+			// If the message sender and channel match...
+			if (messageHistory.get(index).getNick().equals(sender) && messageHistory.get(index).getChannel().equals(channel))
+			{
+				messageHistory.remove(index); // Remove the entry
+			}
+		}
+	}
+	
+	// Determine if a user is an OP
+	public boolean isOp(String nickname, String channel)
+	{
+		
+	    String status = ""; // Initialize status
+	    int index;
+	    User userList[] = getUsers(channel); // Get users in the channel
+
+	    for(index = 0; index < userList.length; index++) // Search through the user list
+	    {
+	    	System.out.println(userList[index].toString());
+	    	// If the username is found in the user list...
+	    	if( userList[index].toString().contains(nickname))
+	        {
+	    		// Get the user's prefix
+	            status = userList[index].toString();
+	            break; // Stop searching
+	        }
+	    }
+	    
+	    // If the prefix is an OP prefix
+	    if (status.startsWith("@") || status.startsWith("~"))
+	    {
+	    	return true; // Return true
+	    }
+	    else // if not
+	    {
+	    	return false; // Return false
+	    }
 	}
 	
 	// Since GoatBot is in testing, we dont want to actually kick someone, just show when we WOULD have.
-	public void kickTest(String channel, String sender, String message)
+	public void kickTest(String channel, String sender)
 	{
 		// Report when a kick would have taken place
 		sendMessage(channel, Colors.BOLD + Colors.RED + "This would hav resulted in a /kick of user " + sender + ", but didn't as GoatBot is still being tested");
-		sendMessage(channel, Colors.BOLD + Colors.RED + "If this would have been unwarrented, please tell mkwarman.");
+		sendMessage(channel, Colors.BOLD + Colors.RED + "If this would have been unwarranted, please tell mkwarman.");
 	}
 	
 	// Simple function for banning then kicking a user for a set amount of time
@@ -214,7 +315,7 @@ public class GoatBot extends PircBot {
 	// Test unbanning calls
 	public void unBanTest(String channel, String sender, String hostmask)
 	{
-		sendMessage(channel, Colors.BOLD + Colors.BLUE + "Unbannning " + sender + "from channel " + channel + " with hostmask " + hostmask);
+		sendMessage(channel, Colors.BOLD + Colors.BLUE + "Unbanning " + sender + " from channel " + channel + " with hostmask " + hostmask);
 		sendMessage(channel, Colors.BOLD + Colors.BLUE + "But not really because I'm still being tested.");
 	}
 	

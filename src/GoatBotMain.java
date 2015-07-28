@@ -38,6 +38,8 @@ public class GoatBotMain {
 		
 		// Allow the bot to talk a little faster
 		bot.setMessageDelay(50);
+		
+		
 	}
 	
 }

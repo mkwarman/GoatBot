@@ -121,7 +121,7 @@ public class GoatBot extends PircBot {
 		if (repeatOffender)
 		{
 			// If the sender has used up all their kicks
-			if (actions.get(index).getWarnings() >= KICKS_BEFORE_BAN)
+			if (actions.get(index).getKicks() >= KICKS_BEFORE_BAN)
 			{
 				// If this is the sender's first ban
 				if (actions.get(index).getBans() == 0)

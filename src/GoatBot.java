@@ -28,11 +28,7 @@ import org.jibble.pircbot.*;
 public class GoatBot extends PircBot {
 	
 	public static final int MAX_MESSAGE_HISTORY = 15; // Sets max size of the message history array
-<<<<<<< HEAD
 	public static final int FLOOD_MESSAGE_FLOOR = 10; // Sets the number of messages from the user in the history to be considered a flood
-=======
-	public static final int FLOOD_MESSAGE_FLOOR = 10; // Sets the number of messages in a row to be considered a flood
->>>>>>> origin/master
 	public static final int FLOOD_TIME_LIMIT = 8; // Set the amount of time between the FLOOD_MESSAGE_FLOOR number of messages to be declared a flood
 	public static final int WARNINGS_BEFORE_KICK = 1; // Set how many times a user is warned before being kicked
 	public static final int KICKS_BEFORE_BAN = 1; // Set how many times a user is kicked before being banned
@@ -40,6 +36,7 @@ public class GoatBot extends PircBot {
 	public static final int BAN_MULTIPLIER = 2; // Set the time multiplier for additional bans
 	public static final int BAN_CHECK_INTERVAL = 1; // Set the interval in minutes for unban checks
 	public boolean testingMode = true;
+	public boolean commandUnderstood = false;
 	public Date time;
 	
 	static List<Message> messageHistory = new ArrayList<Message>(); // Initialize an array list of messages
@@ -75,6 +72,7 @@ public class GoatBot extends PircBot {
 		{
 			// Tell them the time
 			sendMessage(channel, sender + ": The time is now " + time.toString());
+			commandUnderstood = true;
 		}
 		
 		// If someone askes about goatbots status
@@ -82,6 +80,7 @@ public class GoatBot extends PircBot {
 		{
 			// Say you're alive. If you don't, you're probably not alive
 			sendMessage(channel, sender + ": GoatBot is alive");
+			commandUnderstood = true;
 		}
 		
 		// If an OP of chatbotcontrol wishes to enable testing mode
@@ -90,12 +89,14 @@ public class GoatBot extends PircBot {
 			// Enable testing mode
 			testingMode = true;
 			sendMessage(channel, "Ok " + sender + ", enabled testing mode");
+			commandUnderstood = true;
 		}
 		
 		// If a nonOP trys to enable testing mode
 		else if (message.equalsIgnoreCase("goatbot, enable testing mode"))
 		{
 			sendMessage(channel, "Nice try, but you don't have the necessary authentication, " + sender);
+			commandUnderstood = true;
 		}
 		
 		// If an OP of chatbotcontrol wishes to disable testing mode
@@ -104,16 +105,18 @@ public class GoatBot extends PircBot {
 			// Disable testing mode
 			testingMode = false;
 			sendMessage(channel, "Ok " + sender + ", disabled testing mode");
+			commandUnderstood = true;
 		} 
 		
 		// If a nonOP trys to enable testing mode
 		else if (message.equalsIgnoreCase("goatbot, disable testing mode"))
 		{
 			sendMessage(channel, "Nice try, but you don't have the necessary authentication, " + sender);
+			commandUnderstood = true;
 		}
 		
 		// Reply command unknown when appropriate
-		else if (message.toLowerCase().startsWith("goatbot, ") || message.toLowerCase().startsWith("goatbot: "))
+		if (!commandUnderstood && (message.toLowerCase().startsWith("goatbot, ") || message.toLowerCase().startsWith("goatbot: ")))
 		{
 			sendMessage(channel, "Sorry " + sender + ", I don't understand that command");
 		}
@@ -316,13 +319,6 @@ public class GoatBot extends PircBot {
 		sendMessage(channel, Colors.BOLD + Colors.RED + "But not really because I'm still being tested.");
 	}
 	
-	// Test unbanning calls
-	public void unBanTest(String channel, String sender, String hostmask)
-	{
-		sendMessage(channel, Colors.BOLD + Colors.BLUE + "Unbanning " + sender + " from channel " + channel + " with hostmask " + hostmask);
-		sendMessage(channel, Colors.BOLD + Colors.BLUE + "But not really because I'm still being tested.");
-	}
-	
 	// Check if there are any users to be unbanned
 	public void banCheck()
 	{
@@ -334,8 +330,8 @@ public class GoatBot extends PircBot {
 			if (actions.get(index).getBannedStatus() && actions.get(index).getBanExpired())
 			{
 				// Unban the user
-				//unBan(actions.get(index).getChannel(), actions.get(index).getHostmask());
-				unBanTest(actions.get(index).getChannel(), actions.get(index).getNick(), actions.get(index).getHostmask());
+				unBan(actions.get(index).getChannel(), actions.get(index).getHostmask());
+				sendMessage(actions.get(index).getChannel(), Colors.BOLD + Colors.BLUE + "Unbanning " + actions.get(index).getNick() + " from channel " + actions.get(index).getChannel() + " with hostmask " + actions.get(index).getHostmask());
 				actions.get(index).removeBan(); // Remove the banned status in the Action object
 				
 				// Provide console feedback

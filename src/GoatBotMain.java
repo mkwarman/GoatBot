@@ -4,10 +4,10 @@ import java.util.Scanner;
  * Config file for GoatBot. Built by Matt Warman (mkwarman)
  * 
  * Date: 07/28/2015
- * Version: 0.2
+ * Version: 1.0
  * 
  * Changes
- * 0.2
+ * 1.0
  * Implemented input password on startup
  */
 
@@ -37,7 +37,7 @@ public class GoatBotMain {
 		inputPassword.close(); // clean up after the password input
 		
 		// Allow the bot to talk a little faster
-		bot.setMessageDelay(100);
+		bot.setMessageDelay(500);
 		
 		
 	}

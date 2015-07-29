@@ -2,20 +2,23 @@
  * Action object for GoatBot, used to keep track of actions taken against users. Built by Matt Warman (mkwarman)
  * 
  * Date: 07/28/2015
- * Version: 0.2
+ * Version: 1.0
  * 
  * Changes:
  * 0.2
  * Improved addBan - now tracks ban time and length
  * Added ban status, changed currently banned to ban expired
  * Added hostmask for bans
+ * 
+ * 1.0
+ * Made Action an extension of a new IRCUser object
+ * moved nick and hostname to IRCUser object
  */
 
 import java.util.Date;
 
-public class Action {
-	 private String nick; // Store the nick of the user the action is associated with
-	 private String hostmask; // Store the hostmask of the user the action is associated with
+public class Action extends IRCUser{
+
 	 private String channel; // Store the channel the action was made in
 	 private int warnings = 0; // Number of warnings given to the user
 	 private int kicks = 0; // Number of times the user was kicked

@@ -1,8 +1,8 @@
 /*
  * Built by Matt Warman (mkwarman) to protect IRC channels
  * 
- * Date: 07/28/2015
- * Version: 0.2
+ * Date: 07/29/2015
+ * Version: 1.0
  * 
  * Changes
  * 0.2
@@ -18,6 +18,13 @@
  * 
  * 0.5
  * Bug fixes
+ * 
+ * 1.0
+ * Removed cooldown ignore for OPs
+ * Moved OP commands to OP section
+ * Added hostname monitoring
+ * Added hostname ban command
+ * Added !seen command
  */
 
 import java.util.ArrayList;
@@ -46,11 +53,16 @@ public class GoatBot extends PircBot {
 	
 	static List<Message> messageHistory = new ArrayList<Message>(); // Initialize an array list of messages
 	static List<Action> actions = new ArrayList<Action>(); // Keep track of actions taken
+	static List<IRCUser> knownUsers = new ArrayList<IRCUser>(); // Keep track of users
+	
+	
+	String nickRecord[] = {"test", "test2"};
+	
 	Message nullMessage;
 	
 	// Instantiate the bot
 	public GoatBot() {
-		this.setName("GoatBot");
+		this.setName("GoatBotTEST");
 	
 		// Start a timer for ban expiration checks
 		Timer timer = new Timer();
@@ -80,9 +92,117 @@ public class GoatBot extends PircBot {
 		// Record the time
 		time = new java.util.Date();
 		
-		if (time.getTime() <= (coolDownTimeStart.getTime() + (COOL_DOWN_TIME * 1000)))
+		if (time.getTime() <= (coolDownTimeStart.getTime() + (COOL_DOWN_TIME * 1000)) && !isOp(sender, channel))
 		{
 			return;
+		}
+		
+		if (sender.equals(getNick()))
+		{
+			return;
+		}
+		
+		if (isOp(sender, channel))
+		{
+			// If an OP of chatbotcontrol wishes to enable testing mode
+			if (message.equalsIgnoreCase("goatbot, enable testing mode") && isOp(sender, "#chatbotcontrol"))
+			{
+				// Enable testing mode
+				testingMode = true;
+				sendMessage(channel, "Ok " + sender + ", enabled testing mode");
+				commandUnderstood = true;
+			}
+			
+			// If an OP of chatbotcontrol wishes to disable testing mode
+			if (message.equalsIgnoreCase("goatbot, disable testing mode") && isOp(sender, "#chatbotcontrol"))
+			{
+				// Disable testing mode
+				testingMode = false;
+				sendMessage(channel, "Ok " + sender + ", disabled testing mode");
+				commandUnderstood = true;
+			} 
+			
+			// If an OP wishes to see know users
+			if (message.toLowerCase().startsWith("goatbot, list users") || message.toLowerCase().startsWith("goatbot: list users"))
+			{
+				sendMessage(channel, "Alright " + sender + ", printing list in control channel");
+				for (IRCUser user : knownUsers) // For all known user objects
+				{
+					// Print the known information
+					sendMessage("#chatbotcontrol", "Username: " + user.getNick() + " --- Hostmask: " + user.getHostmask() + " --- Online: " + user.getOnline() + " --- Last seen: " + user.getLastSeen());
+				}
+				commandUnderstood = true;
+			}
+			
+			// If an OP wishes to hostname ban a user
+			if (message.toLowerCase().startsWith("goatbot, hostname ban ") || message.toLowerCase().startsWith("goatbot: hostmask ban "))
+			{
+				String userNick = message.substring(22); // Trim the string down to the nick
+				String userHostmask = ""; // Initialize the hostmask variable with a null value
+				
+				for (IRCUser user : knownUsers) // For all known user objects
+				{
+					System.out.println("Checking if " + user.getNick() + " equals " + userNick);
+					if (user.getNick().equals(userNick)) // If a hostname is found
+					{
+						System.out.println("It does!");
+						userHostmask = user.getHostmask(); // Set userHostname to the hostname
+					}
+				}
+				
+				if (userHostmask != "") // If a hostname was found
+				{
+					sendMessage(channel, Colors.BOLD + Colors.RED + "Banning " + userNick + " of " + userHostmask + " at " + sender + "'s request.");
+					
+					// Kickban them
+					if (testingMode)
+					{
+						kickBanTest(channel, userNick, userHostmask, 999);
+					}
+					else
+					{
+						ban(channel, userHostmask);
+						kick(channel, userNick);
+					}
+				}
+				else // If a hostname wasnt found
+				{
+					sendMessage(channel, "I'm sorry, I'm afraid don't have any record of " + userNick + "'s hostname, " + sender + ".");
+				}
+				
+				commandUnderstood = true;
+			}
+			
+			// If an OP wishes to un hostname ban a user
+			if (message.toLowerCase().startsWith("goatbot, hostname unban ") || message.toLowerCase().startsWith("goatbot: hostmask unban "))
+			{
+				String userNick = message.substring(24); // Trim the string down to the nick
+				String userHostmask = ""; // Initialize the hostmask variable with a null value
+				
+				for (IRCUser user : knownUsers) // For all known user objects
+				{
+					System.out.println("Checking if " + user.getNick() + " equals " + userNick);
+					if (user.getNick().equals(userNick)) // If a hostname is found
+					{
+						System.out.println("It does!");
+						userHostmask = user.getHostmask(); // Set userHostname to the hostname
+					}
+				}
+				
+				if (userHostmask != "") // If a hostname was found
+				{
+					sendMessage(channel, Colors.BOLD + Colors.BLUE + "Unbanning " + userNick + " of " + userHostmask + " at " + sender + "'s request.");
+					
+					// Unban the user
+					unBan(channel, userHostmask);
+				}
+				else // If a hostname wasnt found
+				{
+					sendMessage(channel, "I'm sorry, I'm afraid don't have any record of " + userNick + "'s hostname, " + sender + ".");
+				}
+				
+				commandUnderstood = true;
+			}
 		}
 		
 		// If someone asked for the time
@@ -101,36 +221,36 @@ public class GoatBot extends PircBot {
 			commandUnderstood = true;
 		}
 		
-		// If an OP of chatbotcontrol wishes to enable testing mode
-		if (message.equalsIgnoreCase("goatbot, enable testing mode") && isOp(sender, "#chatbotcontrol"))
+		// If someone tries a seen command
+		if (message.toLowerCase().startsWith("!seen "))
 		{
-			// Enable testing mode
-			testingMode = true;
-			sendMessage(channel, "Ok " + sender + ", enabled testing mode");
-			commandUnderstood = true;
-		}
-		
-		// If a nonOP trys to enable testing mode
-		else if (message.equalsIgnoreCase("goatbot, enable testing mode"))
-		{
-			sendMessage(channel, "Nice try, but you don't have the necessary authentication, " + sender);
-			commandUnderstood = true;
-		}
-		
-		// If an OP of chatbotcontrol wishes to disable testing mode
-		if (message.equalsIgnoreCase("goatbot, disable testing mode") && isOp(sender, "#chatbotcontrol"))
-		{
-			// Disable testing mode
-			testingMode = false;
-			sendMessage(channel, "Ok " + sender + ", disabled testing mode");
-			commandUnderstood = true;
-		} 
-		
-		// If a nonOP trys to enable testing mode
-		else if (message.equalsIgnoreCase("goatbot, disable testing mode"))
-		{
-			sendMessage(channel, "Nice try, but you don't have the necessary authentication, " + sender);
-			commandUnderstood = true;
+			String userNick = message.substring(6); // Trim the string down to the nick
+			boolean userFound = false;
+			
+			for (IRCUser user : knownUsers) // For all known user objects
+			{
+				System.out.println("Checking if " + user.getNick() + " equals " + userNick);
+				if (user.getNick().equals(userNick)) // If a hostname is found
+				{
+					String status = "";
+					System.out.println("It does!");
+					if (user.getOnline())
+					{
+						status = "online";
+					}
+					else
+					{
+						status = "offline";
+					}
+					sendMessage(channel, sender + ": " + userNick + " was last seen at " + user.getLastSeen() + " and is currently " + status + ".");
+					userFound = true;
+					break;
+				}
+			}
+			if (!userFound)
+			{
+				sendMessage(channel, "I'm sorry " + sender + ", I haven't seen user " + userNick + " yet.");
+			}
 		}
 		
 		// Reply command unknown when appropriate
@@ -142,6 +262,22 @@ public class GoatBot extends PircBot {
 		// Record the message's sender, content, the channel it was sent to, and the time it was sent
 		messageHistory.add(new Message(sender, message, channel, time));
 		
+		
+		// Update the user's activity and check for 
+		for (IRCUser user : knownUsers)
+		{	
+			if (user.getNick().equals(sender))
+			{
+				user.setLastSeen();
+				if (user.getHostmask().equals(""))
+				{
+					user.setHostmask(hostname);
+					System.out.print("Remembering " + sender + "'s hostname: " + hostname);
+				}
+				break;
+			}
+		}
+		
 		// Limit the number of messages to save in the history, must be greater than flood floor
 		if (messageHistory.size() > MAX_MESSAGE_HISTORY)
 		{
@@ -152,9 +288,91 @@ public class GoatBot extends PircBot {
 		// Check for floods
 		if (floodCheck(channel, sender))
 		{
+			if (!channel.equals("#chatbox")) { return; }
+			
 			// If a flood is detected, run floodProtect
 			floodProtect(channel, sender, hostname);
 		}
+	}
+	
+	// Keep track of changes
+	public void onNickChange(String oldNick, String login, String hostname, String newNick)
+	{
+		for (IRCUser user : knownUsers)
+		{
+			if (user.getNick().equals(oldNick))
+			{
+				user.setNick(newNick);
+				System.out.println("Changed " + oldNick + " to " + newNick);
+				user.setLastSeen();
+				if (user.getHostmask().equals(""))
+				{
+					user.setHostmask(hostname);
+					System.out.print("Remembering " + newNick + "'s hostname: " + hostname);
+				}
+				break;
+			}
+		}
+	}
+	
+	// Add users to currentUsers when they join
+	public void onJoin(String channel, String sender, String login, String hostname)
+	{		
+		if (sender.equals(getNick())) { return; }
+		if (!channel.equals("#chatbox")) { return; }
+		
+		boolean newUser = true;
+		
+		for (IRCUser user : knownUsers)
+		{
+			if (user.getNick().equals(sender))
+			{
+				user.setOnline(true);
+		    	System.out.println("Set user " + sender + " online");
+				newUser = false;
+				break;
+			}
+		}
+		
+		if (newUser)
+		{
+			knownUsers.add(new IRCUser(sender, hostname));
+	    	System.out.println("Added new user " + sender + " on their join");
+		}
+	}
+	
+	// Remove users from currentUsers when they leave
+	public void onQuit(String sourceNick, String sourceLogin, String sourceHostname, String reason)
+	{
+		if (!sourceLogin.equals("#chatbox")) { return; }
+		
+		for (IRCUser user : knownUsers)
+		{
+			if (user.getNick().equals(sourceNick))
+			{
+				user.setOnline(false);
+		    	System.out.println("Set user " + sourceNick + " offline");
+				break;
+			}
+		}
+	}
+	
+	public void onUserList(String channel, User[] users)
+	{
+		if (!channel.equals("#chatbox")) { return; }
+		
+		String nick = new String();
+	    for (User user : users)
+	    {
+	    	nick = user.getNick();
+	    	if (nick.startsWith("~") || nick.startsWith("@") || nick.startsWith("+") || nick.startsWith("&"))
+	    	{
+	    		nick = user.getNick().substring(1); 
+	    	}
+	    	knownUsers.add(new IRCUser(nick, ""));
+	    	System.out.println("Added " + nick);
+	    }
+	    return;
 	}
 	
 	// Check for floods
@@ -196,7 +414,7 @@ public class GoatBot extends PircBot {
 		// Scan through the actions arraylist, checking to see of the sender was previously warned, kicked, banned, etc		
 		for (int i = 0; i < actions.size(); i++)
 		{
-			if (actions.get(i).getNick().equals(sender) && actions.get(i).getChannel().equals(channel))
+			if (actions.get(i).getNick().equals(sender) && actions.get(i).getChannel().equals(channel) && actions.get(i).getWarnings() > 0)
 			{
 				repeatOffender = true; // Sender is a repeat offender
 				break; // Stop scanning if the user is found
@@ -267,13 +485,10 @@ public class GoatBot extends PircBot {
 		
 		else // If the user is NOT a repeat offender
 		{
-			actions.add(new Action(channel, sender, hostmask)); // Add the user to the actions arraylist
-			actions.get(userIndex).addWarning(); // Add that a warning was given to the actions arraylist
-			coolDownTimeStart = time; // Start cooldown timer
-
 			// Issue them a warning
 			sendMessage(channel, sender + ", please be aware that spamming is not allowed in this channel");
-
+			actions.get(userIndex).addWarning(); // Add that a warning was given to the actions arraylist
+			coolDownTimeStart = time; // Start cooldown timer
 		}
 
 		// Prepare a null message to remove user messages from the messageHistory arraylist

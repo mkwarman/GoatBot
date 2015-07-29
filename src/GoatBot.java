@@ -254,6 +254,8 @@ public class GoatBot extends PircBot {
 
 		}
 		
+		
+		/*
 		// Remove sender's messages from the history
 		for (index = 0; index < actions.size(); index++) // Scan through the arraylist
 		{
@@ -263,6 +265,8 @@ public class GoatBot extends PircBot {
 				messageHistory.remove(index); // Remove the entry
 			}
 		}
+		*/
+		messageHistory.clear(); // clear list
 	}
 	
 	// Determine if a user is an OP

@@ -23,6 +23,7 @@ public class Action {
 	 private boolean banStatus = false; // Keep track of whether a user is banned or not
 	 private int lastBanLength = 0; // Length of the last ban
 	 private Date lastBanStart; // Date and time that the last ban started
+	 private Date lastActionIssuedTime; // Date and time that the last action was issued
 	 
 	 Action(String inputChannel, String inputNick, String inputHostmask) {
 		 channel = inputChannel;
@@ -43,6 +44,11 @@ public class Action {
 	 String getChannel()
 	 {
 		 return channel;
+	 }
+	 
+	 Date getLastActionIssuedTime()
+	 {
+		 return lastActionIssuedTime;
 	 }
 	 
 	 int getWarnings()

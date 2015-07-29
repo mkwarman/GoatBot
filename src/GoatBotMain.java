@@ -37,7 +37,7 @@ public class GoatBotMain {
 		inputPassword.close(); // clean up after the password input
 		
 		// Allow the bot to talk a little faster
-		bot.setMessageDelay(50);
+		bot.setMessageDelay(100);
 		
 		
 	}

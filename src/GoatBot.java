@@ -15,6 +15,9 @@
  * Added ability to switch between testing and production mode
  * Improved array clearing after dealing with a penalized sender
  * Added unknown command reply
+ * 
+ * 0.5
+ * Bug fixes
  */
 
 import java.util.ArrayList;
@@ -27,20 +30,23 @@ import org.jibble.pircbot.*;
 
 public class GoatBot extends PircBot {
 	
-	public static final int MAX_MESSAGE_HISTORY = 15; // Sets max size of the message history array
-	public static final int FLOOD_MESSAGE_FLOOR = 10; // Sets the number of messages from the user in the history to be considered a flood
-	public static final int FLOOD_TIME_LIMIT = 8; // Set the amount of time between the FLOOD_MESSAGE_FLOOR number of messages to be declared a flood
+	public static final int MAX_MESSAGE_HISTORY = 10; // Sets max size of the message history array
+	public static final int FLOOD_MESSAGE_FLOOR = 7; // Sets the number of messages from the user in the history to be considered a flood
+	public static final int FLOOD_TIME_LIMIT = 6; // Set the amount of time between the FLOOD_MESSAGE_FLOOR number of messages to be declared a flood
 	public static final int WARNINGS_BEFORE_KICK = 1; // Set how many times a user is warned before being kicked
 	public static final int KICKS_BEFORE_BAN = 1; // Set how many times a user is kicked before being banned
 	public static final int FIRST_BAN_TIME = 150; // Set how many seconds the first ban should last
 	public static final int BAN_MULTIPLIER = 2; // Set the time multiplier for additional bans
 	public static final int BAN_CHECK_INTERVAL = 1; // Set the interval in minutes for unban checks
+	public static final int COOL_DOWN_TIME = 5; // The amount of time to wait for messages to clear before issuing another check or punishment
 	public boolean testingMode = true;
 	public boolean commandUnderstood = false;
 	public Date time;
+	public Date coolDownTimeStart = new Date(0);
 	
 	static List<Message> messageHistory = new ArrayList<Message>(); // Initialize an array list of messages
 	static List<Action> actions = new ArrayList<Action>(); // Keep track of actions taken
+	Message nullMessage;
 	
 	// Instantiate the bot
 	public GoatBot() {
@@ -56,16 +62,28 @@ public class GoatBot extends PircBot {
 				banCheck(); // Run the check for expired bans
 			}
 		}, 0, 1000 * 60 * BAN_CHECK_INTERVAL); // Every interval amount
-	}
-	
 
-	
+		// Prepare a null message to fill the database on startup
+		nullMessage = new Message("null", "null", "null", new java.util.Date());
+		
+		// Prepare database
+		for (int index = 0; index <= MAX_MESSAGE_HISTORY; index++)
+		{
+			// Load the database with null values to start with
+			messageHistory.add(nullMessage);
+		}
+	}
 	
 	// When someone says something
 	public void onMessage(String channel, String sender, String login, String hostname, String message)
 	{
 		// Record the time
 		time = new java.util.Date();
+		
+		if (time.getTime() <= (coolDownTimeStart.getTime() + (COOL_DOWN_TIME * 1000)))
+		{
+			return;
+		}
 		
 		// If someone asked for the time
 		if (message.equalsIgnoreCase("!time"))
@@ -162,6 +180,7 @@ public class GoatBot extends PircBot {
 			if((messageHistory.get(MAX_MESSAGE_HISTORY-1).getTimestamp().getTime() - messageHistory.get(0).getTimestamp().getTime()) < (FLOOD_TIME_LIMIT*1000))
 			{
 				// If the messages were posted quickly enough to be considered a flood, return true
+				System.out.println("Floodcheck returned true");
 				return true;
 			}
 		}
@@ -172,12 +191,12 @@ public class GoatBot extends PircBot {
 	public void floodProtect(String channel, String sender, String hostmask)
 	{
 		boolean repeatOffender = false;	// Innocent till proven guilty	
-		int index = 0; // Keep track of the user's location in the arraylist
+		int userIndex = 0; // Keep track of the user's location in the arraylist
 
 		// Scan through the actions arraylist, checking to see of the sender was previously warned, kicked, banned, etc		
-		for (index = 0; index < actions.size(); index++)
+		for (int i = 0; i < actions.size(); i++)
 		{
-			if (actions.get(index).getNick().equals(sender) && actions.get(index).getChannel().equals(channel))
+			if (actions.get(i).getNick().equals(sender) && actions.get(i).getChannel().equals(channel))
 			{
 				repeatOffender = true; // Sender is a repeat offender
 				break; // Stop scanning if the user is found
@@ -188,10 +207,10 @@ public class GoatBot extends PircBot {
 		if (repeatOffender)
 		{
 			// If the sender has used up all their kicks
-			if (actions.get(index).getKicks() >= KICKS_BEFORE_BAN)
+			if (actions.get(userIndex).getKicks() >= KICKS_BEFORE_BAN)
 			{
 				// If this is the sender's first ban
-				if (actions.get(index).getBans() == 0)
+				if (actions.get(userIndex).getBans() == 0)
 				{
 					// Kickban the user for the default first ban amount of time
 					if (testingMode)
@@ -202,7 +221,7 @@ public class GoatBot extends PircBot {
 					{
 						kickBan(channel, sender, hostmask, FIRST_BAN_TIME);
 					}
-					actions.get(index).addBan(time, FIRST_BAN_TIME);
+					actions.get(userIndex).addBan(time, FIRST_BAN_TIME);
 				}
 				
 				// If the sender has been banned before than once before
@@ -211,18 +230,18 @@ public class GoatBot extends PircBot {
 					// Ban the user again, with a ban time based on the BAN_MULTIPLIER
 					if (testingMode)
 					{
-						kickBanTest(channel, sender, hostmask, actions.get(index).getLastBanLength() * BAN_MULTIPLIER);
+						kickBanTest(channel, sender, hostmask, actions.get(userIndex).getLastBanLength() * BAN_MULTIPLIER);
 					}
 					else
 					{
-						kickBan(channel, sender, hostmask, actions.get(index).getLastBanLength() * BAN_MULTIPLIER);
+						kickBan(channel, sender, hostmask, actions.get(userIndex).getLastBanLength() * BAN_MULTIPLIER);
 					}
-					actions.get(index).addBan(time, actions.get(index).getLastBanLength() * BAN_MULTIPLIER);
+					actions.get(userIndex).addBan(time, actions.get(userIndex).getLastBanLength() * BAN_MULTIPLIER);
 				}
 			}
 			
 			// If the sender has used up all their warnings
-			else if (actions.get(index).getWarnings() >= WARNINGS_BEFORE_KICK)
+			else if (actions.get(userIndex).getWarnings() >= WARNINGS_BEFORE_KICK)
 			{
 				// Kick them
 				if (testingMode)
@@ -233,40 +252,45 @@ public class GoatBot extends PircBot {
 				{
 					kick(channel, sender, "Kicked by the Goat!");
 				}
-				actions.get(index).addKick(); // Add that the sender was kicked
+				actions.get(userIndex).addKick(); // Add that the sender was kicked
+				coolDownTimeStart = time; // Start cooldown timer
 			}
 			
 			else // If the user has NOT used up their warnings
 			{
 				// Warn the user
 				sendMessage(channel, "Warning, flood detected from user: " + sender);
-				actions.get(index).addWarning(); // Add that a warning was given to the actions arraylist
+				actions.get(userIndex).addWarning(); // Add that a warning was given to the actions arraylist
+				coolDownTimeStart = time; // Start cooldown timer
 			}
 		}
 		
 		else // If the user is NOT a repeat offender
 		{
 			actions.add(new Action(channel, sender, hostmask)); // Add the user to the actions arraylist
-			actions.get(index).addWarning(); // Add that a warning was given to the actions arraylist
+			actions.get(userIndex).addWarning(); // Add that a warning was given to the actions arraylist
+			coolDownTimeStart = time; // Start cooldown timer
 
 			// Issue them a warning
 			sendMessage(channel, sender + ", please be aware that spamming is not allowed in this channel");
 
 		}
+
+		// Prepare a null message to remove user messages from the messageHistory arraylist
+		nullMessage = new Message("null", "null", "null", new java.util.Date());
 		
 		
-		/*
 		// Remove sender's messages from the history
-		for (index = 0; index < actions.size(); index++) // Scan through the arraylist
+		for (int i = 0; i < MAX_MESSAGE_HISTORY; i++)
 		{
-			// If the message sender and channel match...
-			if (messageHistory.get(index).getNick().equals(sender) && messageHistory.get(index).getChannel().equals(channel))
+			// If the message sender and channel match...			
+			if (messageHistory.get(i).getNick().equals(sender) && messageHistory.get(i).getChannel().equals(channel))
 			{
-				messageHistory.remove(index); // Remove the entry
+				messageHistory.set(i, nullMessage); // Reset the entry
 			}
+			
 		}
-		*/
-		messageHistory.clear(); // clear list
+		// messageHistory.clear(); // clear list
 	}
 	
 	// Determine if a user is an OP

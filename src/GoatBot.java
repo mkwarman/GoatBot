@@ -55,14 +55,11 @@ public class GoatBot extends PircBot {
 	static List<Action> actions = new ArrayList<Action>(); // Keep track of actions taken
 	static List<IRCUser> knownUsers = new ArrayList<IRCUser>(); // Keep track of users
 	
-	
-	String nickRecord[] = {"test", "test2"};
-	
 	Message nullMessage;
 	
 	// Instantiate the bot
 	public GoatBot() {
-		this.setName("GoatBotTEST");
+		this.setName("GoatBot");
 	
 		// Start a timer for ban expiration checks
 		Timer timer = new Timer();

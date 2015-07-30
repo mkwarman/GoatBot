@@ -17,7 +17,7 @@ Future plans involve setting it up to be run in other customized environments wi
 
 ####1.0:
 
-*Added final core features, fixed bugs and made goatbot overall userful
+* Added final core features, fixed bugs and made goatbot overall userful
 
 
 ####Future Plans:

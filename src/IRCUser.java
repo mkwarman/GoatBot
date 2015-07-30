@@ -39,6 +39,7 @@ public class IRCUser {
 	 void setNick(String newNick)
 	 {
 		 nick = newNick;
+		 lastSeen = new java.util.Date();
 	 }
 	 
 	 String getHostmask()
@@ -49,6 +50,7 @@ public class IRCUser {
 	 void setHostmask(String newHostmask)
 	 {
 		 hostmask = newHostmask;
+		 lastSeen = new java.util.Date();
 	 }
 	 
 	 Date getLastSeen()

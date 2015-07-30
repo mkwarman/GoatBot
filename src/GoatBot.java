@@ -89,14 +89,17 @@ public class GoatBot extends PircBot {
 		// Record the time
 		time = new java.util.Date();
 		
+		// If we are still in a cooldown period
+		//	if ((cooldown start time + cooldown length) < current time)
 		if (time.getTime() <= (coolDownTimeStart.getTime() + (COOL_DOWN_TIME * 1000)) && !isOp(sender, channel))
 		{
-			return;
+			return; // Ignore messages
 		}
 		
+		// If the message is from us
 		if (sender.equals(getNick()))
 		{
-			return;
+			return; // Ignore it
 		}
 		
 		if (isOp(sender, channel))
@@ -152,14 +155,14 @@ public class GoatBot extends PircBot {
 					sendMessage(channel, Colors.BOLD + Colors.RED + "Banning " + userNick + " of " + userHostmask + " at " + sender + "'s request.");
 					
 					// Kickban them
-					if (testingMode)
+					if (testingMode) // If testing
 					{
-						kickBanTest(channel, userNick, userHostmask, 999);
+						kickBanTest(channel, userNick, userHostmask, 999); // Dont actually kick
 					}
-					else
+					else // If not testing
 					{
-						ban(channel, userHostmask);
-						kick(channel, userNick);
+						ban(channel, userHostmask); // Ban user
+						kick(channel, userNick); // Kick user
 					}
 				}
 				else // If a hostname wasnt found
@@ -222,30 +225,35 @@ public class GoatBot extends PircBot {
 		if (message.toLowerCase().startsWith("!seen "))
 		{
 			String userNick = message.substring(6); // Trim the string down to the nick
-			boolean userFound = false;
+			boolean userFound = false; // Assume the user hasn't been found in the array
 			
 			for (IRCUser user : knownUsers) // For all known user objects
 			{
 				System.out.println("Checking if " + user.getNick() + " equals " + userNick);
 				if (user.getNick().equals(userNick)) // If a hostname is found
 				{
-					String status = "";
+					String status = ""; // Initialize an online/offline status variable
 					System.out.println("It does!");
-					if (user.getOnline())
+					
+					// Set the status variable based on whether the user is online or not
+					if (user.getOnline()) // If the user is online
 					{
 						status = "online";
 					}
-					else
+					else // If the user is offline
 					{
 						status = "offline";
 					}
+					
+					// Report findings to the user
 					sendMessage(channel, sender + ": " + userNick + " was last seen at " + user.getLastSeen() + " and is currently " + status + ".");
-					userFound = true;
-					break;
+					userFound = true; // The user was found
+					break; // Stop searching
 				}
 			}
-			if (!userFound)
+			if (!userFound) // If the user was not found in the array
 			{
+				// Report findings to the user
 				sendMessage(channel, "I'm sorry " + sender + ", I haven't seen user " + userNick + " yet.");
 			}
 		}
@@ -260,18 +268,21 @@ public class GoatBot extends PircBot {
 		messageHistory.add(new Message(sender, message, channel, time));
 		
 		
-		// Update the user's activity and check for 
-		for (IRCUser user : knownUsers)
+		// Update the user's activity and check for empty hostnames
+		for (IRCUser user : knownUsers) // For all users in the knownUsers array
 		{	
+			// If the user exists in the array
 			if (user.getNick().equals(sender))
 			{
-				user.setLastSeen();
+				user.setLastSeen(); // Update the last seen time
+				
+				// If we dont already know the user's hostname
 				if (user.getHostmask().equals(""))
 				{
-					user.setHostmask(hostname);
+					user.setHostmask(hostname); // Save the user's hostname
 					System.out.print("Remembering " + sender + "'s hostname: " + hostname);
 				}
-				break;
+				break; // Stop searching
 			}
 		}
 		
@@ -295,19 +306,22 @@ public class GoatBot extends PircBot {
 	// Keep track of changes
 	public void onNickChange(String oldNick, String login, String hostname, String newNick)
 	{
-		for (IRCUser user : knownUsers)
+		for (IRCUser user : knownUsers) // For all users in the knownUsers array
 		{
+			// If the old nick is present
 			if (user.getNick().equals(oldNick))
 			{
+				// Change it to the new nick
 				user.setNick(newNick);
 				System.out.println("Changed " + oldNick + " to " + newNick);
-				user.setLastSeen();
+				
+				// If we didnt already know the user's hostname
 				if (user.getHostmask().equals(""))
 				{
-					user.setHostmask(hostname);
+					user.setHostmask(hostname); // Save the user's hostname
 					System.out.print("Remembering " + newNick + "'s hostname: " + hostname);
 				}
-				break;
+				break; // Stop searching
 			}
 		}
 	}
@@ -315,24 +329,27 @@ public class GoatBot extends PircBot {
 	// Add users to currentUsers when they join
 	public void onJoin(String channel, String sender, String login, String hostname)
 	{		
-		if (sender.equals(getNick())) { return; }
-		if (!channel.equals("#chatbox")) { return; }
+		if (sender.equals(getNick())) { return; } // Ignore our own joining
+		if (!channel.equals("#chatbox")) { return; } // Ignore join events in other channels
 		
-		boolean newUser = true;
+		boolean newUser = true; // By default, assume this is a new user
 		
-		for (IRCUser user : knownUsers)
+		for (IRCUser user : knownUsers) // For all users in knownUsers
 		{
+			// If the newly entered user exists in the knownUsers array already
 			if (user.getNick().equals(sender))
 			{
-				user.setOnline(true);
+				user.setOnline(true); // Set the user status as online
 		    	System.out.println("Set user " + sender + " online");
-				newUser = false;
-				break;
+				newUser = false; // This is NOT a new user, since they were found in the array
+				break; // Stop searching
 			}
 		}
 		
+		// If the user is a new user
 		if (newUser)
 		{
+			// Add them to the knownUsers array
 			knownUsers.add(new IRCUser(sender, hostname));
 	    	System.out.println("Added new user " + sender + " on their join");
 		}
@@ -340,36 +357,39 @@ public class GoatBot extends PircBot {
 	
 	// Remove users from currentUsers when they leave
 	public void onQuit(String sourceNick, String sourceLogin, String sourceHostname, String reason)
-	{
-		if (!sourceLogin.equals("#chatbox")) { return; }
-		
-		for (IRCUser user : knownUsers)
+	{	
+		for (IRCUser user : knownUsers) // For all known users
 		{
-			if (user.getNick().equals(sourceNick))
+			if (user.getNick().equals(sourceNick)) // If this user is one in the list
 			{
-				user.setOnline(false);
+				user.setOnline(false); // Set that user as offline
 		    	System.out.println("Set user " + sourceNick + " offline");
 				break;
 			}
 		}
 	}
 	
+	// When we first join a channel, get the list of users
 	public void onUserList(String channel, User[] users)
 	{
-		if (!channel.equals("#chatbox")) { return; }
+		if (!channel.equals("#chatbox")) { return; } // If we're not in chatbox, stop now
 		
-		String nick = new String();
-	    for (User user : users)
+		String nick = new String(); // Initialize a nick variable
+		
+	    for (User user : users) // For all users in the users array
 	    {
-	    	nick = user.getNick();
+	    	nick = user.getNick(); // Store the user nick in the nick variable
+	    	
+	    	// Cleanse nicks of status prefixes. If the user has a prefix...
 	    	if (nick.startsWith("~") || nick.startsWith("@") || nick.startsWith("+") || nick.startsWith("&"))
 	    	{
-	    		nick = user.getNick().substring(1); 
+	    		nick = user.getNick().substring(1); // Trim it off
 	    	}
+	    	
+	    	// Add the user to the known users array
 	    	knownUsers.add(new IRCUser(nick, ""));
 	    	System.out.println("Added " + nick);
 	    }
-	    return;
 	}
 	
 	// Check for floods
@@ -443,12 +463,14 @@ public class GoatBot extends PircBot {
 				else
 				{
 					// Ban the user again, with a ban time based on the BAN_MULTIPLIER
-					if (testingMode)
+					if (testingMode) // If testing
 					{
+						// Dont actually kickban
 						kickBanTest(channel, sender, hostmask, actions.get(userIndex).getLastBanLength() * BAN_MULTIPLIER);
 					}
-					else
+					else // If not testing
 					{
+						// Kickban user
 						kickBan(channel, sender, hostmask, actions.get(userIndex).getLastBanLength() * BAN_MULTIPLIER);
 					}
 					actions.get(userIndex).addBan(time, actions.get(userIndex).getLastBanLength() * BAN_MULTIPLIER);
@@ -459,13 +481,13 @@ public class GoatBot extends PircBot {
 			else if (actions.get(userIndex).getWarnings() >= WARNINGS_BEFORE_KICK)
 			{
 				// Kick them
-				if (testingMode)
+				if (testingMode) // If testing
 				{
-					kickTest(channel, sender);
+					kickTest(channel, sender); // Dont actually kick
 				}
-				else
+				else // If not testing
 				{
-					kick(channel, sender, "Kicked by the Goat!");
+					kick(channel, sender, "Kicked by the Goat!"); // Kick user
 				}
 				actions.get(userIndex).addKick(); // Add that the sender was kicked
 				coolDownTimeStart = time; // Start cooldown timer

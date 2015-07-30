@@ -28,3 +28,4 @@ Future plans involve setting it up to be run in other customized environments wi
 * goatbot, list online/offline users
 * Improved command recognition
 * Ability to save userlists, possibly in a MySQL database (or text file in the shorter term)
+* !time [TimeZone]

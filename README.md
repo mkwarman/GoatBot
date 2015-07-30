@@ -12,19 +12,19 @@ Future plans involve setting it up to be run in other customized environments wi
 
 ####0.X:
 
-Testing and development
+* Testing and development
 
 
-####1.0:
+* ####1.0:
 
 Added final core features, fixed bugs and made goatbot overall userful
 
 
 ####Future Plans:
 
-goatbot, announce [channel] [message]
-Warning/Kick/Ban forgiveness
-  After a certian amount of time goes by, warnings kick or bans may be forgotten in an attempt to forgive previous offenders.
-goatbot, list online/offline users
-Improved command recognition
-Ability to save userlists, possibly in a MySQL database (or text file in the shorter term)
+* goatbot, announce [channel] [message]
+* Warning/Kick/Ban forgiveness
+  * After a certian amount of time goes by, warnings kick or bans may be forgotten in an attempt to forgive previous offenders.
+* goatbot, list online/offline users
+* Improved command recognition
+* Ability to save userlists, possibly in a MySQL database (or text file in the shorter term)

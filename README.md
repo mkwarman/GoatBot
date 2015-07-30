@@ -10,19 +10,19 @@ Future plans involve setting it up to be run in other customized environments wi
 
 ## Changelog:
 
-###0.X:
+####0.X:
 
 Testing and development
 
 -------------------------------------------------------------------------------------------------------------------
 
-###1.0:
+####1.0:
 
 Added final core features, fixed bugs and made goatbot overall userful
 
 -------------------------------------------------------------------------------------------------------------------
 
-###Future Plans:
+####Future Plans:
 
 goatbot, announce [channel] [message]
 Warning/Kick/Ban forgiveness

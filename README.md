@@ -4,19 +4,25 @@ A simple IRC utility bot
 A more in depth readme will come soon. For now, the bot is built in such a way that portability is only partially implemented.
 Future plans involve setting it up to be run in other customized environments without having to change source code.
 
-Changelog:
 
-0.X
+-------------------------------------------------------------------------------------------------------------------
+
+
+# Changelog:
+
+##0.X:
 
 Testing and development
 
+-------------------------------------------------------------------------------------------------------------------
 
-1.0:
+##1.0:
 
 Added final core features, fixed bugs and made goatbot overall userful
 
+-------------------------------------------------------------------------------------------------------------------
 
-Future Plans:
+##Future Plans:
 
 goatbot, announce [channel] [message]
 Warning/Kick/Ban forgiveness
